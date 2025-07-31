@@ -3,8 +3,8 @@
 set -e
 
 # Configuration - UPDATE THIS WITH YOUR GIST ID
-GIST_ID="YOUR_GIST_ID_HERE"  # Replace with your actual gist ID
-GIST_URL="https://gist.githubusercontent.com/YOUR_USERNAME/${GIST_ID}/raw"
+GIST_ID="18b75f992de5ecfc7fce2eee32b992bf"  # Replace with your actual gist ID
+GIST_URL="https://gist.githubusercontent.com/johnccarroll/${GIST_ID}/raw"
 
 echo "🌩️  Claude Code Gist-Powered NVM Integration v3.0.0"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

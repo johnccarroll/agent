@@ -1,0 +1,46 @@
+{
+  "version": "3.0.0",
+  "meta": {
+    "created": "gist-powered",
+    "purpose": "Multi-Node.js development environment with Claude Code",
+    "updated": "2025",
+    "source": "github-gist"
+  },
+  "development": {
+    "nodeVersions": "multiple via nvm",
+    "packageManager": "npm",
+    "codeEditor": "flexible",
+    "terminal": "preferred interface"
+  },
+  "codeStyle": {
+    "language": "javascript/typescript",
+    "indentation": 2,
+    "quotes": "single",
+    "semicolons": true,
+    "trailingCommas": true,
+    "arrowFunctions": true,
+    "constPreferred": true,
+    "asyncAwait": true,
+    "esModules": true
+  },
+  "workflow": {
+    "gitBranching": "feature/fix branches",
+    "commitFormat": "conventional",
+    "testingRequired": true,
+    "lintingEnabled": true,
+    "prettierFormatting": true
+  },
+  "tools": {
+    "claudeCode": "auto-installed per Node version",
+    "gitLFS": "enabled",
+    "githubCLI": "available",
+    "python": "user-level packages",
+    "monitoring": ["htop", "nvtop"]
+  },
+  "automation": {
+    "autoInstallPackages": ["@anthropic-ai/claude-code"],
+    "autoSyncAcrossVersions": true,
+    "sharedConfiguration": true,
+    "gistPowered": true
+  }
+}

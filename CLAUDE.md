@@ -55,6 +55,12 @@
 - Save session notes to docs/ folder when needed
 - Keep this file concise to save tokens
 
+## Configuration Management
+- **Machine-wide settings**: Use `~/.claude/` for shared configuration across all projects
+- **Avoid project-local configs**: Do not use `.claude/` directories in project roots
+- **Shared across Node versions**: Configuration syncs automatically via install script
+- **Centralized management**: All Claude Code settings managed from single location
+
 ## Do Not
 - Edit files in node_modules/ directories
 - Commit package-lock.json conflicts without resolution
@@ -62,3 +68,5 @@
 - Mix ES modules and CommonJS in same project
 - Install packages globally unless specifically needed
 - Commit sensitive data (API keys, passwords)
+- Create project-local `.claude/` directories (use `~/.claude/` instead)
+- Override machine-wide Claude Code configuration per project

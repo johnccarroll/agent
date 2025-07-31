@@ -1,0 +1,18 @@
+# Local Claude Code configuration - use ~/.claude/ instead
+.claude/
+
+# Temporary files
+test-path.sh
+*.tmp
+*.log
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~

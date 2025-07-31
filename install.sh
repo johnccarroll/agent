@@ -1,12 +1,12 @@
 #!/bin/bash
-# Claude Code NVM Integration - Gist-Powered Installer v3.0.0
+# Claude Code NVM Integration - Gist-Powered Installer v3.1.0 (Fixed)
 set -e
 
 # Configuration - UPDATE THIS WITH YOUR GIST ID
-GIST_ID="18b75f992de5ecfc7fce2eee32b992bf"  # Replace with your actual gist ID
+GIST_ID="18b75f992de5ecfc7fce2eee32b992bf"
 GIST_URL="https://gist.githubusercontent.com/johnccarroll/${GIST_ID}/raw"
 
-echo "🌩️  Claude Code Gist-Powered NVM Integration v3.0.0"
+echo "🌩️  Claude Code Gist-Powered NVM Integration v3.1.0"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "Gist: https://gist.github.com/${GIST_ID}"
 echo ""
@@ -51,47 +51,160 @@ echo "✅ Gist accessible"
 echo ""
 echo "📦 Installing system dependencies..."
 
-# Install Git LFS
-if ! command -v git-lfs &> /dev/null; then
+# Function to install Git LFS with fallback methods
+install_git_lfs() {
+    if command -v git-lfs &> /dev/null; then
+        echo "✅ Git LFS already installed"
+        return 0
+    fi
+    
     echo "Installing Git LFS..."
-    curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | run_privileged bash
-    run_privileged apt-get update
-    run_privileged apt-get install -y git-lfs
-    git lfs install
-fi
+    
+    # Method 1: Try package manager first
+    if command -v apt &> /dev/null; then
+        if run_privileged apt update && run_privileged apt install -y git-lfs 2>/dev/null; then
+            git lfs install
+            echo "✅ Git LFS installed via apt"
+            return 0
+        fi
+    fi
+    
+    # Method 2: Try packagecloud script with OS detection override
+    if [ -n "$os" ] && [ -n "$dist" ]; then
+        echo "Trying packagecloud with OS override: $os/$dist"
+        if curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | run_privileged bash 2>/dev/null; then
+            run_privileged apt-get update && run_privileged apt-get install -y git-lfs
+            git lfs install
+            echo "✅ Git LFS installed via packagecloud"
+            return 0
+        fi
+    fi
+    
+    # Method 3: Try packagecloud script without override  
+    echo "Trying packagecloud script..."
+    if curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | run_privileged bash 2>/dev/null; then
+        if run_privileged apt-get update && run_privileged apt-get install -y git-lfs 2>/dev/null; then
+            git lfs install
+            echo "✅ Git LFS installed via packagecloud"
+            return 0
+        fi
+    fi
+    
+    # Method 4: Direct binary download
+    echo "Trying direct binary installation..."
+    if curl -L https://github.com/git-lfs/git-lfs/releases/download/v3.4.0/git-lfs-linux-amd64-v3.4.0.tar.gz | tar -xz -C /tmp; then
+        if run_privileged mv /tmp/git-lfs-3.4.0/git-lfs /usr/local/bin/; then
+            git lfs install
+            echo "✅ Git LFS installed via direct download"
+            return 0
+        fi
+    fi
+    
+    echo "⚠️  Warning: Could not install Git LFS automatically"
+    echo "   You can install it manually later with: sudo apt install git-lfs"
+    return 1
+}
 
-# Install GitHub CLI
-if ! command -v gh &> /dev/null; then
+# Install Git LFS with multiple fallback methods
+install_git_lfs
+
+# Install GitHub CLI with better error handling
+install_github_cli() {
+    if command -v gh &> /dev/null; then
+        echo "✅ GitHub CLI already installed"
+        return 0
+    fi
+    
     echo "Installing GitHub CLI..."
-    curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg -o /tmp/githubcli-archive-keyring.gpg
-    run_privileged dd if=/tmp/githubcli-archive-keyring.gpg of=/usr/share/keyrings/githubcli-archive-keyring.gpg
-    run_privileged chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg
-    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | run_privileged tee /etc/apt/sources.list.d/github-cli.list > /dev/null
-    run_privileged apt update
-    run_privileged apt install -y gh
-    rm -f /tmp/githubcli-archive-keyring.gpg
-fi
+    
+    # Method 1: Try snap (works on most modern Ubuntu)
+    if command -v snap &> /dev/null; then
+        if run_privileged snap install gh 2>/dev/null; then
+            echo "✅ GitHub CLI installed via snap"
+            return 0
+        fi
+    fi
+    
+    # Method 2: Try official installation method
+    if curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg -o /tmp/githubcli-archive-keyring.gpg 2>/dev/null; then
+        if run_privileged dd if=/tmp/githubcli-archive-keyring.gpg of=/usr/share/keyrings/githubcli-archive-keyring.gpg 2>/dev/null; then
+            run_privileged chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg
+            echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | run_privileged tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+            if run_privileged apt update && run_privileged apt install -y gh 2>/dev/null; then
+                rm -f /tmp/githubcli-archive-keyring.gpg
+                echo "✅ GitHub CLI installed via official method"
+                return 0
+            fi
+        fi
+        rm -f /tmp/githubcli-archive-keyring.gpg
+    fi
+    
+    # Method 3: Try direct binary download
+    echo "Trying direct binary installation..."
+    GH_VERSION=$(curl -s https://api.github.com/repos/cli/cli/releases/latest | grep -o '"tag_name": "v[^"]*"' | cut -d'"' -f4)
+    if [ -n "$GH_VERSION" ]; then
+        if curl -L "https://github.com/cli/cli/releases/download/${GH_VERSION}/gh_${GH_VERSION#v}_linux_amd64.tar.gz" | tar -xz -C /tmp; then
+            if run_privileged mv "/tmp/gh_${GH_VERSION#v}_linux_amd64/bin/gh" /usr/local/bin/; then
+                echo "✅ GitHub CLI installed via direct download"
+                return 0
+            fi
+        fi
+    fi
+    
+    echo "⚠️  Warning: Could not install GitHub CLI automatically"
+    echo "   You can install it manually later with: sudo snap install gh"
+    return 1
+}
+
+# Install GitHub CLI with fallbacks
+install_github_cli
 
 # Install Python dependencies
 if ! command -v pip3 &> /dev/null; then
+    echo "Installing Python3 pip..."
     run_privileged apt-get install -y python3-pip
+else
+    echo "✅ Python3 pip already installed"
 fi
 
 # Install monitoring tools
-if ! command -v htop &> /dev/null; then
-    run_privileged apt-get install -y htop cmake libncurses5-dev libncursesw5-dev git
-    
-    if ! command -v nvtop &> /dev/null; then
-        git clone https://github.com/Syllo/nvtop.git /tmp/nvtop
-        mkdir -p /tmp/nvtop/build && cd /tmp/nvtop/build
-        cmake .. && make && run_privileged make install
-        cd ~ && rm -rf /tmp/nvtop
+install_monitoring_tools() {
+    if command -v htop &> /dev/null && command -v nvtop &> /dev/null; then
+        echo "✅ Monitoring tools already installed"
+        return 0
     fi
-fi
+    
+    echo "Installing monitoring tools..."
+    run_privileged apt-get install -y htop
+    
+    # Try to install nvtop, but don't fail if it doesn't work
+    if ! command -v nvtop &> /dev/null; then
+        echo "Installing nvtop..."
+        if run_privileged apt-get install -y cmake libncurses5-dev libncursesw5-dev git 2>/dev/null; then
+            if git clone https://github.com/Syllo/nvtop.git /tmp/nvtop 2>/dev/null; then
+                if (cd /tmp/nvtop && mkdir -p build && cd build && cmake .. && make && run_privileged make install) 2>/dev/null; then
+                    echo "✅ nvtop installed successfully"
+                else
+                    echo "⚠️  Warning: nvtop compilation failed, but htop is available"
+                fi
+                rm -rf /tmp/nvtop
+            else
+                echo "⚠️  Warning: Could not clone nvtop repository"
+            fi
+        else
+            echo "⚠️  Warning: Could not install nvtop dependencies"
+        fi
+    fi
+}
+
+install_monitoring_tools
 
 # Install Python packages
+echo ""
 echo "🐍 Installing Python packages..."
-pip3 install --user --upgrade pip wandb huggingface_hub >/dev/null 2>&1
+pip3 install --user --upgrade pip wandb huggingface_hub >/dev/null 2>&1 || {
+    echo "⚠️  Warning: Some Python packages may have failed to install"
+}
 
 # Create directories
 mkdir -p ~/.claude ~/.claude/commands ~/.local/bin ~/.nvm
@@ -245,7 +358,7 @@ current_version=$(command nvm current)
 for version in $versions; do
     command nvm use "$version" >/dev/null 2>&1
     if npm list -g @anthropic-ai/claude-code >/dev/null 2>&1; then
-        pkg_version=$(npm list -g @anthropic-ai/claude-code --depth=0 2>/dev/null | grep @anthropic-ai/claude-code | sed 's/.*@//' | sed 's/ .*//')
+        pkg_version=$(npm list -g @anthropic-ai/claude-code --depth=0 2>/dev/null | grep @anthropic-ai/claude-code | sed 's/.*@//' | sed 's/ .*//') 
         echo "✅ $version: claude-code@$pkg_version"
     else
         echo "❌ $version: claude-code missing"

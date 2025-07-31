@@ -1,7 +1,7 @@
 {
-  "version": "3.0.0",
+  "version": "4.0.0",
   "meta": {
-    "created": "gist-powered",
+    "created": "cross-platform-gist",
     "purpose": "Multi-Node.js development environment with Claude Code",
     "updated": "2025",
     "source": "github-gist"
@@ -10,7 +10,7 @@
     "nodeVersions": "multiple via nvm",
     "packageManager": "npm",
     "codeEditor": "flexible",
-    "terminal": "preferred interface"
+    "terminal": "cross-platform"
   },
   "codeStyle": {
     "language": "javascript/typescript",
@@ -41,6 +41,6 @@
     "autoInstallPackages": ["@anthropic-ai/claude-code"],
     "autoSyncAcrossVersions": true,
     "sharedConfiguration": true,
-    "gistPowered": true
+    "crossPlatform": true
   }
 }

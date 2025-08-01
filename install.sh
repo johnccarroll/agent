@@ -385,7 +385,7 @@ create_claude_hook() {
 # Claude Code Auto-Installer Hook for NVM (Cross-Platform)
 
 CLAUDE_PACKAGES=("@anthropic-ai/claude-code")
-VERBOSE=true
+VERBOSE=false
 
 log() {
     if [ "$VERBOSE" = true ]; then

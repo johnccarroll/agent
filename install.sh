@@ -48,17 +48,36 @@ detect_os() {
 
 # Detect shell (bash/zsh/etc)
 detect_shell() {
-    if [ -n "$BASH_VERSION" ]; then
-        SHELL_TYPE="bash"
-        SHELL_RC="$HOME/.bashrc"
-    elif [ -n "$ZSH_VERSION" ]; then
-        SHELL_TYPE="zsh"
-        SHELL_RC="$HOME/.zshrc"
-    else
-        # Default to bash
-        SHELL_TYPE="bash"
-        SHELL_RC="$HOME/.bashrc"
-    fi
+    # Check current shell from SHELL environment variable first
+    case "$SHELL" in
+        */zsh)
+            SHELL_TYPE="zsh"
+            SHELL_RC="$HOME/.zshrc"
+            ;;
+        */bash)
+            SHELL_TYPE="bash"
+            SHELL_RC="$HOME/.bashrc"
+            ;;
+        *)
+            # Fall back to version detection
+            if [ -n "$ZSH_VERSION" ]; then
+                SHELL_TYPE="zsh"
+                SHELL_RC="$HOME/.zshrc"
+            elif [ -n "$BASH_VERSION" ]; then
+                SHELL_TYPE="bash"
+                SHELL_RC="$HOME/.bashrc"
+            else
+                # Default to zsh on macOS
+                if [ "$OS" = "macos" ]; then
+                    SHELL_TYPE="zsh"
+                    SHELL_RC="$HOME/.zshrc"
+                else
+                    SHELL_TYPE="bash"
+                    SHELL_RC="$HOME/.bashrc"
+                fi
+            fi
+            ;;
+    esac
     
     echo "🐚 Shell: $SHELL_TYPE (config: $SHELL_RC)"
 }

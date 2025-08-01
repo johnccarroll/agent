@@ -1,9 +1,6 @@
 {
   "cleanupPeriodDays": 30,
   "includeCoAuthoredBy": false,
-  "env": {
-    "CLAUDE_CODE_ENABLE_TELEMETRY": "0"
-  },
   "permissions": {
     "defaultMode": "acceptEdits",
     "allow": [

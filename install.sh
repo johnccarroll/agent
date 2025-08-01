@@ -448,7 +448,7 @@ nvm() {
     if [ $exit_code -eq 0 ]; then
         case "$cmd" in
             "use"|"install"|"alias")
-                (sleep 1 && ensure_claude_available) &
+                ensure_claude_available >/dev/null 2>&1
                 ;;
         esac
     fi
@@ -456,7 +456,10 @@ nvm() {
     return $exit_code
 }
 
-ensure_claude_available >/dev/null 2>&1 &
+# Only run initial check if this is an interactive shell
+if [[ $- == *i* ]]; then
+    ensure_claude_available >/dev/null 2>&1 &
+fi
 EOW
     
     chmod +x ~/.nvm/nvm-claude-wrapper.sh
@@ -471,21 +474,30 @@ create_utilities() {
 #!/usr/bin/env bash
 echo "🔄 Syncing Claude Code across all Node.js versions..."
 
+# Load NVM properly
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
 [ -s "$HOME/.nvm/claude-hook.sh" ] && source "$HOME/.nvm/claude-hook.sh"
 
-versions=$(command nvm list --no-colors | grep -E 'v[0-9]+\.[0-9]+\.[0-9]+' | sed 's/[^v0-9.]//g')
-current_version=$(command nvm current)
+# Check if NVM is available
+if ! command -v nvm >/dev/null 2>&1; then
+    echo "❌ NVM not found in PATH"
+    echo "   Make sure NVM is properly installed and sourced in your shell"
+    exit 1
+fi
+
+versions=$(nvm list --no-colors 2>/dev/null | grep -E 'v[0-9]+\.[0-9]+\.[0-9]+' | sed 's/[^v0-9.]//g')
+current_version=$(nvm current 2>/dev/null || echo "none")
 
 for version in $versions; do
     echo "📦 Installing Claude Code for $version..."
-    command nvm use "$version" >/dev/null 2>&1
+    nvm use "$version" >/dev/null 2>&1
     install_claude_packages
 done
 
 if [ "$current_version" != "none" ]; then
-    command nvm use "$current_version" >/dev/null 2>&1
+    nvm use "$current_version" >/dev/null 2>&1
 fi
 
 echo "✅ Sync complete!"
@@ -497,14 +509,23 @@ EOS
 echo "📊 Claude Code Status Report"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
+# Load NVM properly
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
 
-versions=$(command nvm list --no-colors | grep -E 'v[0-9]+\.[0-9]+\.[0-9]+' | sed 's/[^v0-9.]//g')
-current_version=$(command nvm current)
+# Check if NVM is available
+if ! command -v nvm >/dev/null 2>&1; then
+    echo "❌ NVM not found in PATH"
+    echo "   Make sure NVM is properly installed and sourced in your shell"
+    exit 1
+fi
+
+versions=$(nvm list --no-colors 2>/dev/null | grep -E 'v[0-9]+\.[0-9]+\.[0-9]+' | sed 's/[^v0-9.]//g')
+current_version=$(nvm current 2>/dev/null || echo "none")
 
 for version in $versions; do
-    command nvm use "$version" >/dev/null 2>&1
+    nvm use "$version" >/dev/null 2>&1
     if npm list -g @anthropic-ai/claude-code >/dev/null 2>&1; then
         pkg_version=$(npm list -g @anthropic-ai/claude-code --depth=0 2>/dev/null | grep @anthropic-ai/claude-code | sed 's/.*@//' | sed 's/ .*//') 
         echo "✅ $version: claude-code@$pkg_version"
@@ -514,7 +535,7 @@ for version in $versions; do
 done
 
 if [ "$current_version" != "none" ]; then
-    command nvm use "$current_version" >/dev/null 2>&1
+    nvm use "$current_version" >/dev/null 2>&1
 fi
 
 echo ""

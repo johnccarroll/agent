@@ -46,40 +46,41 @@ detect_os() {
     echo "🔍 Detected: $OS ($ARCH)"
 }
 
-# Detect shell (bash/zsh/etc)
+# Detect available shells
 detect_shell() {
-    # Check current shell from SHELL environment variable first
-    case "$SHELL" in
-        */zsh)
-            SHELL_TYPE="zsh"
-            SHELL_RC="$HOME/.zshrc"
-            ;;
-        */bash)
-            SHELL_TYPE="bash"
-            SHELL_RC="$HOME/.bashrc"
-            ;;
-        *)
-            # Fall back to version detection
-            if [ -n "$ZSH_VERSION" ]; then
-                SHELL_TYPE="zsh"
-                SHELL_RC="$HOME/.zshrc"
-            elif [ -n "$BASH_VERSION" ]; then
-                SHELL_TYPE="bash"
-                SHELL_RC="$HOME/.bashrc"
-            else
-                # Default to zsh on macOS
-                if [ "$OS" = "macos" ]; then
-                    SHELL_TYPE="zsh"
-                    SHELL_RC="$HOME/.zshrc"
-                else
-                    SHELL_TYPE="bash"
-                    SHELL_RC="$HOME/.bashrc"
-                fi
-            fi
-            ;;
-    esac
+    SHELL_CONFIGS=()
     
-    echo "🐚 Shell: $SHELL_TYPE (config: $SHELL_RC)"
+    # Check for zsh
+    if [ -f "$HOME/.zshrc" ] || command -v zsh >/dev/null 2>&1; then
+        SHELL_CONFIGS+=("$HOME/.zshrc")
+    fi
+    
+    # Check for bash
+    if [ -f "$HOME/.bashrc" ] || command -v bash >/dev/null 2>&1; then
+        SHELL_CONFIGS+=("$HOME/.bashrc")
+    fi
+    
+    # If no config files exist, create based on current shell or default
+    if [ ${#SHELL_CONFIGS[@]} -eq 0 ]; then
+        case "$SHELL" in
+            */zsh)
+                SHELL_CONFIGS=("$HOME/.zshrc")
+                ;;
+            */bash)
+                SHELL_CONFIGS=("$HOME/.bashrc")
+                ;;
+            *)
+                # Default to zsh on macOS, bash elsewhere
+                if [ "$OS" = "macos" ]; then
+                    SHELL_CONFIGS=("$HOME/.zshrc")
+                else
+                    SHELL_CONFIGS=("$HOME/.bashrc")
+                fi
+                ;;
+        esac
+    fi
+    
+    echo "🐚 Shell configs: ${SHELL_CONFIGS[*]}"
 }
 
 # Check if NVM is installed
@@ -562,17 +563,9 @@ EOF
 
 # Add shell integration
 add_shell_integration() {
-    echo "🐚 Adding shell integration to $SHELL_RC..."
+    echo "🐚 Adding shell integration..."
     
-    # Check if already integrated
-    if grep -q "nvm-claude-wrapper" "$SHELL_RC" 2>/dev/null; then
-        echo "⚠️  Shell integration already exists, skipping..."
-        return 0
-    fi
-    
-    # Add integration based on OS and shell
-    cat >> "$SHELL_RC" << 'EOB'
-
+    local integration_block='
 # Claude Code NVM Integration (Cross-Platform)
 if [ -s "$HOME/.nvm/nvm-claude-wrapper.sh" ]; then
     source "$HOME/.nvm/nvm-claude-wrapper.sh"
@@ -589,10 +582,26 @@ case "$(uname -s)" in
             eval "$(/usr/local/bin/brew shellenv)"
         fi
         ;;
-esac
-EOB
+esac'
     
-    echo "✅ Shell integration added"
+    for shell_config in "${SHELL_CONFIGS[@]}"; do
+        echo "  📝 Updating $(basename "$shell_config")..."
+        
+        # Check if already integrated
+        if grep -q "nvm-claude-wrapper" "$shell_config" 2>/dev/null; then
+            echo "     ⚠️  Integration already exists, skipping..."
+            continue
+        fi
+        
+        # Create config file if it doesn't exist
+        touch "$shell_config"
+        
+        # Add integration
+        echo "$integration_block" >> "$shell_config"
+        echo "     ✅ Integration added"
+    done
+    
+    echo "✅ Shell integration complete"
 }
 
 # Initial Claude Code installation
@@ -635,7 +644,7 @@ main() {
     echo "✅ Cross-Platform Installation Complete!"
     echo ""
     echo "🌍 Platform: $OS ($ARCH)"
-    echo "🐚 Shell: $SHELL_TYPE"
+    echo "🐚 Shell configs: ${SHELL_CONFIGS[*]}"
     echo "🌩️  Configuration synced from gist"
     echo ""
     echo "🛠️  Commands:"
@@ -643,14 +652,7 @@ main() {
     echo "   claude-status - Check installation status"
     echo "   claude-update - Update from gist"
     echo ""
-    case $OS in
-        windows)
-            echo "🔄 Restart your terminal to activate changes"
-            ;;
-        *)
-            echo "🔄 Restart terminal or run: source $SHELL_RC"
-            ;;
-    esac
+    echo "🔄 Restart terminal or source your shell config to activate changes"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 }
 

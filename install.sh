@@ -424,7 +424,7 @@ ensure_claude_available() {
     fi
 }
 
-export -f install_claude_packages ensure_claude_available
+# Functions are available in this script context only
 EOH
     
     chmod +x ~/.nvm/claude-hook.sh
@@ -448,7 +448,7 @@ nvm() {
     if [ $exit_code -eq 0 ]; then
         case "$cmd" in
             "use"|"install"|"alias")
-                ensure_claude_available >/dev/null 2>&1
+                (ensure_claude_available >/dev/null 2>&1) &
                 ;;
         esac
     fi
@@ -456,9 +456,9 @@ nvm() {
     return $exit_code
 }
 
-# Only run initial check if this is an interactive shell
-if [[ $- == *i* ]]; then
-    ensure_claude_available >/dev/null 2>&1 &
+# Only run initial check if this is an interactive shell (silently)
+if [[ $- == *i* ]] && ! command -v claude >/dev/null 2>&1; then
+    (ensure_claude_available >/dev/null 2>&1) &
 fi
 EOW
     

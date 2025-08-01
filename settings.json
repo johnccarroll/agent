@@ -1,22 +1,66 @@
 {
   "cleanupPeriodDays": 30,
-  "includeCoAuthoredBy": true,
+  "includeCoAuthoredBy": false,
   "env": {
-    "CLAUDE_CODE_ENABLE_TELEMETRY": "1"
+    "CLAUDE_CODE_ENABLE_TELEMETRY": "1",
+    "OTEL_METRICS_EXPORTER": "otlp",
+    "CLAUDE_CODE_EXTENDED_CONTEXT": "1"
   },
   "permissions": {
-    "defaultMode": "allow",
+    "defaultMode": "acceptEdits",
+    "additionalDirectories": ["../", "./docs/", "./scripts/", "~/.config/"],
     "allow": [
       "Bash(*)",
       "Edit(*)",
       "Read(*)",
       "Write(*)",
+      "MultiEdit(*)",
       "Glob(*)",
       "Grep(*)",
       "LS(*)",
       "TodoWrite(*)",
       "WebSearch(*)",
-      "WebFetch(*)"
+      "WebFetch(*)",
+      "NotebookRead(*)",
+      "NotebookEdit(*)",
+      "Task(*)"
     ]
-  }
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash(git *)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo 'Executing git command...' >> ~/.claude/git-activity.log"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo 'Claude Code session started at $(date)' >> ~/.claude/session.log"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo 'User prompt submitted at $(date)' >> ~/.claude/activity.log"
+          }
+        ]
+      }
+    ]
+  },
+  "model": "claude-3-5-sonnet-20241022",
+  "enableAllProjectMcpServers": true
 }

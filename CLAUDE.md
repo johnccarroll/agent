@@ -61,6 +61,13 @@
 - **Shared across Node versions**: Configuration syncs automatically via install script
 - **Centralized management**: All Claude Code settings managed from single location
 
+## Cleanup & Maintenance
+- **Remove temporary files**: Always clean up test files, temp scripts, and debugging artifacts
+- **No leftover code**: Remove commented-out code, unused imports, and dead code
+- **Clean working directory**: Ensure `git status` is clean after completing tasks
+- **Remove debugging output**: Delete console.log, print statements, and debug comments
+- **Clean up failed attempts**: Remove partial implementations and failed experiment files
+
 ## Do Not
 - Edit files in node_modules/ directories
 - Commit package-lock.json conflicts without resolution
@@ -70,3 +77,5 @@
 - Commit sensitive data (API keys, passwords)
 - Create project-local `.claude/` directories (use `~/.claude/` instead)
 - Override machine-wide Claude Code configuration per project
+- Leave temporary files, test scripts, or debugging artifacts in the codebase
+- Commit incomplete or experimental code without cleanup

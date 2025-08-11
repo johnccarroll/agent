@@ -56,52 +56,30 @@ Create a markdown checklist with [ ] for each major task:
 
 Save this plan to `docs/plan-$(date +%Y%m%d).md` for reference.
 
-## commit
+## agent
 
-Analyze the current git changes and create a meaningful commit:
+High-level agent guidance and quick actions:
 
-1. **Review Changes**
-   - Use `git diff --staged` to see staged changes
-   - If nothing staged, review `git diff` for unstaged changes
-
-2. **Create Commit Message**
-   - Use conventional commit format: `type(scope): description`
-   - Types: feat, fix, docs, style, refactor, test, chore
-   - Keep description under 72 characters
-   - Add body if changes are complex
-
-3. **Verify & Commit**
-   - Ensure tests pass before committing
-   - Run linting if available
-   - Stage files if needed, then commit
-
-Example formats:
-- `feat(auth): add user login functionality`
-- `fix(api): handle null response in user endpoint`
-- `docs(readme): update installation instructions`
+1. Read the repository `AGENT.md` (root) and apply its conventions
+2. Respect user-global preferences in `~/.config/AGENT.MD`
+3. If working within a subdirectory and no local `AGENT.md` exists, ask whether to create one using the subsystem blueprint
+4. Avoid modifying repository `AGENT.md` without explicit user request
 
 ## sync
 
-Ensure Claude Code is properly installed across all Node.js versions:
+Pull the latest configuration from the gist and update local installations:
 
-1. **Check Current Status**
-   - Run `claude-status` to see current installation state
-   - Identify any missing installations
+1. **Update global config**
+   - Runs `claude-sync` to fetch latest `CLAUDE.md`, `settings.json`, and `commands.md` from the gist
+   - Updates user-global `~/.config/AGENT.MD` if provided by the gist
 
-2. **Sync Across Versions**
-   - Run `claude-sync` to install in all Node versions
-   - Verify each installation completed successfully
+2. **Sync across Node versions**
+   - Ensures `@anthropic-ai/claude-code` is installed for each local Node version via nvm
 
-3. **Test Functionality**
-   - Switch to a different Node version with `nvm use X`
-   - Verify `claude --version` works
-   - Test basic Claude Code functionality
+3. **Non-invasive**
+   - Does not modify repository `AGENT.md` files; only updates user-global config and Claude installs
 
-4. **Update Configuration**
-   - Ensure `~/.claude/CLAUDE.md` is up to date
-   - Check that shared settings are properly configured
-
-This ensures consistent Claude Code availability across your development environment.
+Use this command when you want to refresh configs and ensure Claude is ready across Node versions.
 
 ## debug
 
@@ -122,10 +100,10 @@ Systematically debug the issue described in $ARGUMENTS:
    - Test individual components in isolation
    - Verify environment setup and dependencies
 
-4. **Solution & Prevention**
+  4. **Solution & Prevention**
    - Implement a fix for the root cause
    - Add tests to prevent regression
    - Update documentation if needed
-   - Consider adding to CLAUDE.md if it's a common issue
+    - Consider adding to AGENT.md if it's a common issue
 
 Be methodical and document your findings for future reference.

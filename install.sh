@@ -6,6 +6,8 @@ set -e
 # Configuration - UPDATE THIS WITH YOUR GIST ID
 GIST_ID="18b75f992de5ecfc7fce2eee32b992bf"
 GIST_URL="https://gist.githubusercontent.com/johnccarroll/${GIST_ID}/raw"
+# Remote filename for user-global AGENT (different name in GitHub/gist), installed as ~/.config/AGENT.MD
+GIST_USER_AGENT_FILENAME="AGENT-GLOBAL-BLUEPRINT.md"
 
 echo "🌍 Claude Code Cross-Platform NVM Integration v4.0.0"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -346,10 +348,105 @@ download_configuration() {
     echo "☁️  Downloading configuration from gist..."
     
     # Create directories
-    mkdir -p ~/.claude ~/.claude/commands ~/.local/bin ~/.nvm
+    mkdir -p ~/.claude ~/.claude/commands ~/.local/bin ~/.nvm ~/.config
     
     echo "Downloading CLAUDE.md..."
     curl -fsSL "${GIST_URL}/CLAUDE.md" -o ~/.claude/CLAUDE.md
+    
+    # Root-level AGENT blueprint
+    echo "Downloading AGENT-ROOT-BLUEPRINT.md (optional)..."
+    if curl -fsSL "${GIST_URL}/AGENT-ROOT-BLUEPRINT.md" -o ~/.claude/AGENT-ROOT-BLUEPRINT.md 2>/dev/null; then
+        echo "✅ AGENT-ROOT-BLUEPRINT.md downloaded from gist"
+    else
+        if [ -f "$(pwd)/AGENT-ROOT-BLUEPRINT.md" ]; then
+            cp "$(pwd)/AGENT-ROOT-BLUEPRINT.md" ~/.claude/AGENT-ROOT-BLUEPRINT.md
+            echo "✅ AGENT-ROOT-BLUEPRINT.md copied from local repository"
+        else
+            # Fallback to legacy AGENT-BLUEPRINT.md naming if present in gist
+            if curl -fsSL "${GIST_URL}/AGENT-BLUEPRINT.md" -o ~/.claude/AGENT-ROOT-BLUEPRINT.md 2>/dev/null; then
+                echo "✅ AGENT-ROOT-BLUEPRINT.md populated from AGENT-BLUEPRINT.md in gist"
+            else
+                cat > ~/.claude/AGENT-ROOT-BLUEPRINT.md << 'EOF'
+# AGENT.md (Root-Level) Blueprint
+
+## Project Overview
+- Name: <PROJECT_NAME>
+- Summary: <ONE_SENTENCE_DESCRIPTION>
+
+## Build & Commands
+- Install: <CMD>
+- Test: <CMD>
+- Dev: <CMD>
+
+## Code Style
+- <RULES>
+
+## Architecture
+- <NOTES>
+
+## Testing
+- <NOTES>
+
+## Security
+- <NOTES>
+EOF
+                echo "✅ AGENT-ROOT-BLUEPRINT.md created from default template"
+            fi
+        fi
+    fi
+
+    # Subsystem AGENT blueprint
+    echo "Downloading AGENT-SUBSYSTEM-BLUEPRINT.md (optional)..."
+    if curl -fsSL "${GIST_URL}/AGENT-SUBSYSTEM-BLUEPRINT.md" -o ~/.claude/AGENT-SUBSYSTEM-BLUEPRINT.md 2>/dev/null; then
+        echo "✅ AGENT-SUBSYSTEM-BLUEPRINT.md downloaded from gist"
+    else
+        if [ -f "$(pwd)/AGENT-SUBSYSTEM-BLUEPRINT.md" ]; then
+            cp "$(pwd)/AGENT-SUBSYSTEM-BLUEPRINT.md" ~/.claude/AGENT-SUBSYSTEM-BLUEPRINT.md
+            echo "✅ AGENT-SUBSYSTEM-BLUEPRINT.md copied from local repository"
+        else
+            cat > ~/.claude/AGENT-SUBSYSTEM-BLUEPRINT.md << 'EOF'
+# AGENT.md (Subsystem) Blueprint
+
+## Subsystem Overview
+- Name: <SUBSYSTEM_NAME>
+- Purpose: <BRIEF>
+
+## Commands
+- Dev: <CMD>
+- Test: <CMD>
+- Build: <CMD>
+EOF
+            echo "✅ AGENT-SUBSYSTEM-BLUEPRINT.md created from default template"
+        fi
+    fi
+
+    # User-global AGENT: install from gist under configured remote filename
+    echo "Updating user-global ~/.config/AGENT.MD from gist (if available)..."
+    if curl -fsSL "${GIST_URL}/${GIST_USER_AGENT_FILENAME}" -o /tmp/AGENT.USER.GLOBAL 2>/dev/null; then
+        if [ -f "$HOME/.config/AGENT.MD" ]; then
+            cp "$HOME/.config/AGENT.MD" "$HOME/.config/AGENT.MD.bak-$(date +%Y%m%d-%H%M%S)"
+        fi
+        mv /tmp/AGENT.USER.GLOBAL "$HOME/.config/AGENT.MD"
+        echo "✅ Installed user-global AGENT.MD from gist file: ${GIST_USER_AGENT_FILENAME}"
+    else
+        if [ -f "$(pwd)/AGENT-GLOBAL-BLUEPRINT.md" ]; then
+            cp "$(pwd)/AGENT-GLOBAL-BLUEPRINT.md" "$HOME/.config/AGENT.MD"
+            echo "✅ Installed user-global AGENT.MD from local blueprint"
+        else
+            # Minimal default
+            cat > "$HOME/.config/AGENT.MD" << 'EOF'
+# AGENT.md (User-Global)
+
+Personal preferences for agentic tools. Repository `AGENT.md` always takes precedence.
+EOF
+            echo "✅ Created minimal user-global AGENT.MD"
+        fi
+    fi
+
+    # Create lowercase symlink for compatibility (if not exists)
+    if [ ! -e "$HOME/.config/AGENT.md" ]; then
+        ln -sf "$HOME/.config/AGENT.MD" "$HOME/.config/AGENT.md"
+    fi
     
     echo "Downloading settings.json..."
     curl -fsSL "${GIST_URL}/settings.json" -o ~/.claude/settings.json
@@ -469,39 +566,85 @@ EOW
 create_utilities() {
     echo "🛠️  Creating utility scripts..."
     
-    # claude-sync script
-    cat > ~/.local/bin/claude-sync << 'EOS'
+    # claude-sync script (combined: update from gist + sync across Node versions)
+    cat > ~/.local/bin/claude-sync << EOF
 #!/usr/bin/env bash
-echo "🔄 Syncing Claude Code across all Node.js versions..."
+set -e
+
+echo "🔄 Updating global config from gist and syncing Claude Code across Node.js versions..."
+
+GIST_URL="${GIST_URL}"
+GIST_USER_AGENT_FILENAME="${GIST_USER_AGENT_FILENAME}"
+
+# Ensure directories
+mkdir -p "\$HOME/.claude/commands" "\$HOME/.config" "\$HOME/.nvm"
+
+# Update Claude config cache from gist
+curl -fsSL "\${GIST_URL}/CLAUDE.md" -o "\$HOME/.claude/CLAUDE.md"
+curl -fsSL "\${GIST_URL}/settings.json" -o "\$HOME/.claude/settings.json"
+curl -fsSL "\${GIST_URL}/commands.md" -o /tmp/commands.md
+
+# Extract individual command files
+cd "\$HOME/.claude/commands"
+awk '
+/^## [a-zA-Z]/ {
+    if (filename) close(filename)
+    gsub(/^## /, "", $0)
+    gsub(/ .*/, "", $0)
+    filename = tolower($0) ".md"
+    print "# " substr($0, 1, 1) toupper(substr($0, 2)) " Command" > filename
+    next
+}
+filename { print > filename }
+' /tmp/commands.md
+rm /tmp/commands.md
+
+# Update blueprint caches (optional)
+curl -fsSL "\${GIST_URL}/AGENT-ROOT-BLUEPRINT.md" -o "\$HOME/.claude/AGENT-ROOT-BLUEPRINT.md" 2>/dev/null || true
+curl -fsSL "\${GIST_URL}/AGENT-SUBSYSTEM-BLUEPRINT.md" -o "\$HOME/.claude/AGENT-SUBSYSTEM-BLUEPRINT.md" 2>/dev/null || true
+
+# Update user-global AGENT.MD from gist; do not touch project AGENT.md files
+if curl -fsSL "\${GIST_URL}/\${GIST_USER_AGENT_FILENAME}" -o /tmp/AGENT.USER.GLOBAL 2>/dev/null; then
+  if [ -f "\$HOME/.config/AGENT.MD" ]; then
+    cp "\$HOME/.config/AGENT.MD" "\$HOME/.config/AGENT.MD.bak-\$(date +%Y%m%d-%H%M%S)"
+  fi
+  mv /tmp/AGENT.USER.GLOBAL "\$HOME/.config/AGENT.MD"
+  echo "✅ Updated user-global AGENT.MD from gist"
+fi
+
+# Maintain lowercase symlink for compatibility
+if [ ! -e "\$HOME/.config/AGENT.md" ]; then
+  ln -sf "\$HOME/.config/AGENT.MD" "\$HOME/.config/AGENT.md"
+fi
 
 # Load NVM properly
-export NVM_DIR="$HOME/.nvm"
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
-[ -s "$HOME/.nvm/claude-hook.sh" ] && source "$HOME/.nvm/claude-hook.sh"
+export NVM_DIR="\$HOME/.nvm"
+[ -s "\$NVM_DIR/nvm.sh" ] && \. "\$NVM_DIR/nvm.sh"
+[ -s "\$NVM_DIR/bash_completion" ] && \. "\$NVM_DIR/bash_completion"
+[ -s "\$HOME/.nvm/claude-hook.sh" ] && source "\$HOME/.nvm/claude-hook.sh"
 
 # Check if NVM is available
 if ! command -v nvm >/dev/null 2>&1; then
-    echo "❌ NVM not found in PATH"
-    echo "   Make sure NVM is properly installed and sourced in your shell"
-    exit 1
+  echo "❌ NVM not found in PATH"
+  echo "   Make sure NVM is properly installed and sourced in your shell"
+  exit 1
 fi
 
-versions=$(nvm list --no-colors 2>/dev/null | grep -E 'v[0-9]+\.[0-9]+\.[0-9]+' | sed 's/[^v0-9.]//g')
-current_version=$(nvm current 2>/dev/null || echo "none")
+versions=\$(nvm list --no-colors 2>/dev/null | grep -E 'v[0-9]+\.[0-9]+\.[0-9]+' | sed 's/[^v0-9.]//g')
+current_version=\$(nvm current 2>/dev/null || echo "none")
 
-for version in $versions; do
-    echo "📦 Installing Claude Code for $version..."
-    nvm use "$version" >/dev/null 2>&1
-    install_claude_packages
+for version in \$versions; do
+  echo "📦 Ensuring Claude Code for \$version..."
+  nvm use "\$version" >/dev/null 2>&1
+  install_claude_packages
 done
 
-if [ "$current_version" != "none" ]; then
-    nvm use "$current_version" >/dev/null 2>&1
+if [ "\$current_version" != "none" ]; then
+  nvm use "\$current_version" >/dev/null 2>&1
 fi
 
 echo "✅ Sync complete!"
-EOS
+EOF
     
     # claude-status script
     cat > ~/.local/bin/claude-status << 'EOT'
@@ -542,44 +685,108 @@ echo ""
 echo "Commands: claude-sync | claude-status | claude-update"
 EOT
     
-    # claude-update script
-    cat > ~/.local/bin/claude-update << EOF
-#!/usr/bin/env bash
-echo "🔄 Updating Claude Code configuration from gist..."
-
-GIST_URL="$GIST_URL"
-
-# Backup current configuration
-backup_dir="\$HOME/.claude/backup-\$(date +%Y%m%d-%H%M%S)"
-mkdir -p "\$backup_dir"
-cp -r ~/.claude/* "\$backup_dir/" 2>/dev/null || true
-
-# Download updated files
-curl -fsSL "\${GIST_URL}/CLAUDE.md" -o ~/.claude/CLAUDE.md
-curl -fsSL "\${GIST_URL}/settings.json" -o ~/.claude/settings.json
-curl -fsSL "\${GIST_URL}/commands.md" -o /tmp/commands.md
-
-# Extract commands
-cd ~/.claude/commands
-awk '
-/^## [a-zA-Z]/ {
-    if (filename) close(filename)
-    gsub(/^## /, "", \$0)
-    gsub(/ .*/, "", \$0)
-    filename = tolower(\$0) ".md"
-    print "# " substr(\$0, 1, 1) toupper(substr(\$0, 2)) " Command" > filename
-    next
-}
-filename { print > filename }
-' /tmp/commands.md
-
-rm /tmp/commands.md
-
-echo "✅ Configuration updated from gist"
-echo "📁 Backup saved to: \$backup_dir"
-EOF
+    # removed: claude-update alias (use claude-sync only)
     
-    chmod +x ~/.local/bin/claude-sync ~/.local/bin/claude-status ~/.local/bin/claude-update
+    # agent-init script (create/verify AGENT.md for root or subsystem)
+    cat > ~/.local/bin/agent-init << 'EOA'
+#!/usr/bin/env bash
+# Initialize AGENT.md from blueprints.
+
+set -e
+
+usage() {
+  cat <<USAGE
+Usage: agent-init [--subsystem]
+
+Without flags, ensures a root-level AGENT.md exists at the repository root.
+With --subsystem, creates a scoped AGENT.md in the current subdirectory.
+USAGE
+}
+
+MODE="root"
+if [ "$1" = "--subsystem" ]; then
+  MODE="subsystem"
+elif [ -n "$1" ]; then
+  usage
+  exit 1
+fi
+
+# Detect repo root (if inside a git repository)
+if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  REPO_ROOT=$(git rev-parse --show-toplevel)
+else
+  REPO_ROOT=$(pwd)
+fi
+
+if [ "$MODE" = "root" ]; then
+  TARGET="$REPO_ROOT/AGENT.md"
+  BLUEPRINT="$HOME/.claude/AGENT-ROOT-BLUEPRINT.md"
+else
+  TARGET="$(pwd)/AGENT.md"
+  BLUEPRINT="$HOME/.claude/AGENT-SUBSYSTEM-BLUEPRINT.md"
+fi
+
+ensure_file() {
+  if [ ! -f "$TARGET" ]; then
+    if [ -f "$BLUEPRINT" ]; then
+      cp "$BLUEPRINT" "$TARGET"
+    else
+      cat > "$TARGET" << 'EOF'
+# AGENT.md
+
+Please customize this file for your project. See https://agent.md for guidance.
+EOF
+    fi
+    echo "🧭 Created AGENT.md: $TARGET"
+    CREATED=1
+  fi
+}
+
+prompt_if_placeholder() {
+  if grep -q "<PROJECT_NAME>\|AGENT.md initial blueprint" "$TARGET" 2>/dev/null; then
+    echo "✍️  AGENT.md contains placeholders. Please update it to reflect your project."
+    echo "    File: $TARGET"
+  fi
+}
+
+tip_for_subsystem() {
+  if [ "$MODE" = "root" ] && [ -d "$REPO_ROOT" ] && [ "$(pwd)" != "$REPO_ROOT" ] && [ ! -f "$(pwd)/AGENT.md" ]; then
+    echo "💡 Tip: To create a scoped AGENT.md for this subdirectory, run: agent-init --subsystem"
+  fi
+}
+
+ensure_file
+prompt_if_placeholder
+tip_for_subsystem
+EOA
+
+    # No backward-compatible alias is required
+
+    # claude wrapper: run agent-init automatically before invoking real CLI
+    cat > ~/.local/bin/claude << 'EOC'
+#!/usr/bin/env bash
+
+# Run AGENT.md initialization/check
+if command -v agent-init >/dev/null 2>&1; then
+  agent-init >/dev/null 2>&1 || true
+fi
+
+# Try to locate the real claude CLI installed by npm
+REAL_BIN="$(npm bin -g 2>/dev/null)/claude"
+if [ -x "$REAL_BIN" ]; then
+  exec "$REAL_BIN" "$@"
+fi
+
+# Fallback: temporarily drop ~/.local/bin from PATH and try again
+SAFE_PATH=$(printf "%s" "$PATH" | awk -v RS=: -v ORS=: -v p="$HOME/.local/bin" '$0 != p {print}' | sed 's/:$//')
+exec env PATH="$SAFE_PATH" claude "$@"
+EOC
+
+    chmod +x \
+      ~/.local/bin/claude-sync \
+      ~/.local/bin/claude-status \
+      ~/.local/bin/agent-init \
+      ~/.local/bin/claude
 }
 
 # Add shell integration
@@ -671,7 +878,7 @@ main() {
     echo "🛠️  Commands:"
     echo "   claude-sync   - Sync across all Node versions"
     echo "   claude-status - Check installation status"
-    echo "   claude-update - Update from gist"
+    echo "   agent-init    - Create/verify AGENT.md in current repository"
     echo ""
     echo "🔄 Restart terminal or source your shell config to activate changes"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

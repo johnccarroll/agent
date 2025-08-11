@@ -1,53 +1,19 @@
-# Multi-Node.js Development Environment
+# Claude Code Configuration
 
-## Environment Setup
-- **Node.js**: Multiple versions via nvm (auto-switching with Claude Code)
-- **Package Manager**: npm (global packages per Node version)
-- **Python**: pip3 with user-level packages (version independent)
-- **Git**: Configured with LFS and GitHub CLI
-- **Monitoring**: htop, nvtop available
+## Scope
+- This file contains Claude-specific guidance only.
+- Project-wide development and environment setup lives in `AGENT.md` (root) and user-global settings in `~/.config/AGENT.MD`.
 
-## Development Workflow
-- Use `nvm use <version>` to switch Node.js versions
-- Claude Code auto-installs with each Node version
-- All Node versions share this configuration
-- Python packages installed once (user-level)
-
-## Code Style & Standards
-- **JavaScript/TypeScript**: ES6+, arrow functions, template literals
-- **Formatting**: 2-space indentation, trailing commas, semicolons
-- **Imports**: ES modules (import/export), not CommonJS
-- **Functions**: Prefer arrow functions and const declarations
-- **Async**: Use async/await over promises when possible
-
-## Git Workflow
-- **Branches**: feature/description or fix/description
-- **Commits**: Conventional format (feat:, fix:, docs:, etc.)
-- **PRs**: Create from feature branches, require review
-- **Commands**: Use `gh` CLI for GitHub operations
-
-## Thinking & Planning
+## Prompting Conventions
 - Use "think" for basic planning
-- Use "think hard" for complex problems  
+- Use "think hard" for complex problems
 - Use "think harder" for architectural decisions
 - Use "ultrathink" for critical system design
 
-## Commands & Shortcuts
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm run test` - Run tests
-- `npm run lint` - Lint code
-- `gh pr create` - Create pull request
+## Claude Commands
 - `claude-sync` - Sync Claude Code across Node versions
 - `claude-status` - Check Claude installation status
-
-## Best Practices
-- **Context**: Always provide full context for complex requests
-- **Iteration**: Expect 2-3 iterations for optimal results
-- **Testing**: Write tests, especially for new features
-- **Documentation**: Update README and inline docs
-- **Security**: Review code for vulnerabilities
-- **Performance**: Consider performance implications
+- `claude-update` - Update user config from gist
 
 ## Memory Management
 - Use `/compact` at natural breakpoints
@@ -56,26 +22,11 @@
 - Keep this file concise to save tokens
 
 ## Configuration Management
-- **Machine-wide settings**: Use `~/.claude/` for shared configuration across all projects
-- **Avoid project-local configs**: Do not use `.claude/` directories in project roots
-- **Shared across Node versions**: Configuration syncs automatically via install script
-- **Centralized management**: All Claude Code settings managed from single location
-
-## Cleanup & Maintenance
-- **Remove temporary files**: Always clean up test files, temp scripts, and debugging artifacts
-- **No leftover code**: Remove commented-out code, unused imports, and dead code
-- **Clean working directory**: Ensure `git status` is clean after completing tasks
-- **Remove debugging output**: Delete console.log, print statements, and debug comments
-- **Clean up failed attempts**: Remove partial implementations and failed experiment files
+- Repository guidance: Place project guidance in `AGENT.md` at the repository root
+- User-global settings: Use `~/.config/AGENT.MD` for personal preferences
+- Claude installs per Node version; user config syncs via install script
+- `AGENT.md` is the source of truth agents should follow
 
 ## Do Not
-- Edit files in node_modules/ directories
-- Commit package-lock.json conflicts without resolution
-- Use deprecated Node.js APIs
-- Mix ES modules and CommonJS in same project
-- Install packages globally unless specifically needed
-- Commit sensitive data (API keys, passwords)
 - Create project-local `.claude/` directories (use `~/.claude/` instead)
 - Override machine-wide Claude Code configuration per project
-- Leave temporary files, test scripts, or debugging artifacts in the codebase
-- Commit incomplete or experimental code without cleanup

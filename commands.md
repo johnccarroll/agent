@@ -67,19 +67,22 @@ High-level agent guidance and quick actions:
 
 ## sync
 
-Pull the latest configuration from the gist and update local installations:
+Pull the latest configuration from the gist and commit updates to git:
 
 1. **Update global config**
-   - Runs `claude-sync` to fetch latest `CLAUDE.md`, `settings.json`, and `commands.md` from the gist
-   - Updates user-global `~/.config/AGENT.MD` if provided by the gist
+   - Downloads latest `CLAUDE.md`, `settings.json`, and `commands.md` from gist
+   - Updates user-global `~/.config/AGENT.MD` with global agent instructions
+   - Refreshes agent blueprints for creating root and subsystem `AGENT.md` files
 
-2. **Sync across Node versions**
-   - Ensures `@anthropic-ai/claude-code` is installed for each local Node version via nvm
+2. **Downstream only**
+   - Only pulls configuration from gist, no upstream changes
+   - Clean sync that updates local files without git commits
 
 3. **Non-invasive**
-   - Does not modify repository `AGENT.md` files; only updates user-global config and Claude installs
+   - Does not modify existing project `AGENT.md` files
+   - Only updates global configuration and user-global settings
 
-Use this command when you want to refresh configs and ensure Claude is ready across Node versions.
+Use `sync` command to refresh configuration and keep your setup current with the gist.
 
 ## debug
 

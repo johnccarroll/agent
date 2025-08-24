@@ -298,7 +298,7 @@ install_monitoring_tools() {
 download_configuration() {
     echo "☁️  Downloading configuration from repo..."
     
-    mkdir -p ~/.claude ~/.local/bin ~/.config/agent
+    mkdir -p ~/.claude ~/.config/agent
     
     # Ensure global canonical config exists at ~/.config/agent/AGENTS.md
     if [ -f "$HOME/.config/AGENT.MD" ] && [ ! -f "$HOME/.config/agent/AGENTS.md" ]; then
@@ -374,8 +374,6 @@ EOF
     # Ensure Claude reads the canonical config via symlink: ~/.claude/CLAUDE.md -> ~/.config/agent/AGENTS.md
     ln -sf "$HOME/.config/agent/AGENTS.md" "$HOME/.claude/CLAUDE.md"
     
-    echo "Downloading settings.json..."
-    curl -fsSL "${REPO_URL}/settings.json" -o ~/.claude/settings.json
     
     echo "Downloading commands.md..."
     curl -fsSL "${REPO_URL}/commands.md" -o ~/.claude/commands.md 2>/dev/null || true
@@ -383,165 +381,7 @@ EOF
     echo "✅ Configuration downloaded from repo"
 }
 
-create_utilities() {
-    echo "🛠️  Creating utility scripts..."
-    
-    cat > ~/.local/bin/sync << EOF
-#!/usr/bin/env bash
-set -e
 
-echo "🔄 Syncing global agent configuration..."
-
-REPO_URL="${REPO_URL}"
-USER_AGENT_FILENAME="${USER_AGENT_FILENAME}"
-
-mkdir -p "\$HOME/.claude" "\$HOME/.config/agent"
-
-echo "Linking ~/.claude/CLAUDE.md to ~/.config/agent/AGENTS.md..."
-ln -sf "\$HOME/.config/agent/AGENTS.md" "\$HOME/.claude/CLAUDE.md"
-
-echo "Downloading settings.json..."
-curl -fsSL "\${REPO_URL}/settings.json" -o "\$HOME/.claude/settings.json" || echo "Warning: Could not download settings.json"
-
-echo "Downloading commands.md..."
-curl -fsSL "\${REPO_URL}/commands.md" -o "\$HOME/.claude/commands.md" || echo "Warning: Could not download commands.md"
-
-echo "Downloading agent template..."
-curl -fsSL "\${REPO_URL}/AGENTS-template.md" -o "\$HOME/.claude/AGENTS-template.md" 2>/dev/null || true
-
-if curl -fsSL "\${REPO_URL}/\${USER_AGENT_FILENAME}" -o /tmp/AGENT.USER.GLOBAL 2>/dev/null; then
-  if [ -f "\$HOME/.config/agent/AGENTS.md" ]; then
-    cp "\$HOME/.config/agent/AGENTS.md" "\$HOME/.config/agent/AGENTS.md.bak-\$(date +%Y%m%d-%H%M%S)"
-  fi
-  mv /tmp/AGENT.USER.GLOBAL "\$HOME/.config/agent/AGENTS.md"
-  echo "✅ Updated user-global AGENTS.md from repo"
-else
-  echo "Warning: Could not download AGENTS.md from repo"
-fi
-
-# Maintain CLAUDE.md symlink after updates
-ln -sf "\$HOME/.config/agent/AGENTS.md" "\$HOME/.claude/CLAUDE.md"
-
-echo "✅ Configuration sync complete!"
-EOF
-
-    cat > ~/.local/bin/agent-init << 'EOA'
-#!/usr/bin/env bash
-
-set -e
-
-usage() {
-  cat <<USAGE
-Usage: agent-init
-
-Creates an AGENTS.md file in the current directory using the template.
-USAGE
-}
-
-if [ -n "$1" ]; then
-  usage
-  exit 1
-fi
-
-TARGET="$(pwd)/AGENTS.md"
-TEMPLATE="$HOME/.claude/AGENTS-template.md"
-
-ensure_file() {
-  if [ ! -f "$TARGET" ]; then
-    if [ -f "$TEMPLATE" ]; then
-      cp "$TEMPLATE" "$TARGET"
-      echo "🧭 Created AGENTS.md from template: $TARGET"
-    else
-      cat > "$TARGET" << 'EOF'
-# AGENTS.md
-
-Personal preferences for agentic tools. Repository `AGENTS.md` always takes precedence.
-
-## Preferences
-
-- Editor: VS Code
-- Tab width / indentation: 2 spaces  
-- Line length: 100
-- Preferred package manager: npm
-- Testing preference: vitest
-
-## Behaviors
-
-- Auto-run checks before commit: true
-- Prefer CLI over GUI tooling: true
-- Ask before running migrations: true
-
-## Security & Privacy
-
-- Never upload proprietary code to remote analysis tools
-- Redact secrets in logs and debugging output
-EOF
-      echo "🧭 Created AGENTS.md with default content: $TARGET"
-    fi
-  else
-    echo "✅ AGENTS.md already exists: $TARGET"
-  fi
-}
-
-ensure_file
-EOA
-
-    chmod +x ~/.local/bin/sync ~/.local/bin/agent-init
-}
-
-add_shell_integration() {
-    echo "🐚 Adding shell integration..."
-    
-    local integration_block='
-# >>> Agent Integration >>>
-# Agent utilities
-export PATH="$HOME/.local/bin:$PATH"
-
-# Platform-specific PATH additions
-case "$(uname -s)" in
-    Darwin*)
-        # macOS Homebrew paths
-        if [ -d "/opt/homebrew/bin" ]; then
-            eval "$(/opt/homebrew/bin/brew shellenv)"
-        elif [ -d "/usr/local/bin/brew" ]; then
-            eval "$(/usr/local/bin/brew shellenv)"
-        fi
-        ;;
-esac
-# <<< Agent Integration <<<'
-
-    local targets=()
-    targets+=("${SHELL_CONFIGS[@]}")
-    if [ "$(uname -s)" = "Darwin" ]; then
-        targets+=("$HOME/.zprofile")
-    fi
-
-    local unique_targets=()
-    for f in "${targets[@]}"; do
-        local seen=false
-        for u in "${unique_targets[@]}"; do
-            if [ "$u" = "$f" ]; then seen=true; break; fi
-        done
-        $seen || unique_targets+=("$f")
-    done
-
-    for shell_config in "${unique_targets[@]}"; do
-        [ -z "$shell_config" ] && continue
-        echo "  📝 Updating $(basename "$shell_config")..."
-        
-        touch "$shell_config"
-        
-        if grep -q "^# >>> \(Claude\|Agent\) Integration >>>" "$shell_config" 2>/dev/null; then
-            sed -i '.bak' '/^# >>> \(Claude\|Agent\) Integration >>>/,/^# <<< \(Claude\|Agent\) Integration <<</d' "$shell_config" || true
-            rm -f "${shell_config}.bak"
-        fi
-        
-        printf "%s\n" "$integration_block" >> "$shell_config"
-        echo "     ✅ Integration ensured"
-    done
-    
-    echo "✅ Shell integration complete"
-}
 
 main() {
     detect_os
@@ -558,8 +398,6 @@ main() {
     
     echo ""
     download_configuration
-    create_utilities
-    add_shell_integration
     
     echo ""
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -569,11 +407,9 @@ main() {
     echo "🐚 Shell configs: ${SHELL_CONFIGS[*]}"
     echo "🌩️  Configuration synced from repo"
     echo ""
-    echo "🛠️  Commands:"
-    echo "   sync           - Claude slash command (/sync) and CLI command to sync config from repo"
-    echo "   agent-init     - Shell script to create AGENTS.md from template"
-    echo ""
-    echo "🔄 Restart terminal or source your shell config to activate changes"
+    echo "🛠️  Available:"
+    echo "   /sync          - Claude slash command to sync config from repo"
+    echo "   /agent-init    - Claude slash command to create AGENTS.md from template"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 }
 

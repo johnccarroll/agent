@@ -3,13 +3,12 @@
 # Works on macOS, Linux, and Windows (WSL/Git Bash)
 set -e
 
-GIST_ID="18b75f992de5ecfc7fce2eee32b992bf"
-GIST_URL="https://gist.githubusercontent.com/johnccarroll/${GIST_ID}/raw"
-GIST_USER_AGENT_FILENAME="AGENT-GLOBAL-BLUEPRINT.md"
+REPO_URL="https://raw.githubusercontent.com/johnccarroll/agent/main"
+USER_AGENT_FILENAME="AGENTS.md"
 
 echo "🌍 Agent Development Environment Setup v4.0.0"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "Gist: https://gist.github.com/${GIST_ID}"
+echo "Repo: https://github.com/johnccarroll/agent"
 echo ""
 
 detect_os() {
@@ -77,18 +76,18 @@ detect_shell() {
     echo "🐚 Shell configs: ${SHELL_CONFIGS[*]}"
 }
 
-check_gist() {
-    echo "🔍 Checking gist accessibility..."
-    if ! curl -sSf "${GIST_URL}/CLAUDE.md" >/dev/null 2>&1; then
-        echo "❌ Cannot access gist: ${GIST_ID}"
+check_repo() {
+    echo "🔍 Checking repo accessibility..."
+    if ! curl -sSf "${REPO_URL}/AGENTS.md" >/dev/null 2>&1; then
+        echo "❌ Cannot access repo: https://github.com/johnccarroll/agent"
         echo "   Please ensure:"
-        echo "   1. Gist exists and is public"
-        echo "   2. GIST_ID is correct in this script"
-        echo "   3. CLAUDE.md file exists in the gist"
+        echo "   1. Repository exists and is public"
+        echo "   2. AGENTS.md file exists in the repo"
+        echo "   3. Network connection is working"
         exit 1
     fi
     
-    echo "✅ Gist accessible"
+    echo "✅ Repo accessible"
 }
 
 install_package_manager() {
@@ -297,109 +296,91 @@ install_monitoring_tools() {
 }
 
 download_configuration() {
-    echo "☁️  Downloading configuration from gist..."
+    echo "☁️  Downloading configuration from repo..."
     
-    mkdir -p ~/.claude ~/.local/bin ~/.config
+    mkdir -p ~/.claude ~/.local/bin ~/.config/agent
     
-    echo "Downloading CLAUDE.md..."
-    curl -fsSL "${GIST_URL}/CLAUDE.md" -o ~/.claude/CLAUDE.md
+    # Ensure global canonical config exists at ~/.config/agent/AGENTS.md
+    if [ -f "$HOME/.config/AGENT.MD" ] && [ ! -f "$HOME/.config/agent/AGENTS.md" ]; then
+        mv "$HOME/.config/AGENT.MD" "$HOME/.config/agent/AGENTS.md"
+        echo "✅ Migrated ~/.config/AGENT.MD -> ~/.config/agent/AGENTS.md"
+    fi
+    if [ -f "$HOME/.config/AGENT.md" ] && [ ! -f "$HOME/.config/agent/AGENTS.md" ]; then
+        mv "$HOME/.config/AGENT.md" "$HOME/.config/agent/AGENTS.md"
+        echo "✅ Migrated ~/.config/AGENT.md -> ~/.config/agent/AGENTS.md"
+    fi
+    if [ -f "$HOME/.config/AGENTS.md" ] && [ ! -f "$HOME/.config/agent/AGENTS.md" ]; then
+        mv "$HOME/.config/AGENTS.md" "$HOME/.config/agent/AGENTS.md"
+        echo "✅ Migrated ~/.config/AGENTS.md -> ~/.config/agent/AGENTS.md"
+    fi
     
-    echo "Downloading AGENT-ROOT-BLUEPRINT.md (optional)..."
-    if curl -fsSL "${GIST_URL}/AGENT-ROOT-BLUEPRINT.md" -o ~/.claude/AGENT-ROOT-BLUEPRINT.md 2>/dev/null; then
-        echo "✅ AGENT-ROOT-BLUEPRINT.md downloaded from gist"
+    echo "Downloading AGENTS-template.md (optional)..."
+    if curl -fsSL "${REPO_URL}/AGENTS-template.md" -o ~/.claude/AGENTS-template.md 2>/dev/null; then
+        echo "✅ AGENTS-template.md downloaded from repo"
     else
-        if [ -f "$(pwd)/AGENT-ROOT-BLUEPRINT.md" ]; then
-            cp "$(pwd)/AGENT-ROOT-BLUEPRINT.md" ~/.claude/AGENT-ROOT-BLUEPRINT.md
-            echo "✅ AGENT-ROOT-BLUEPRINT.md copied from local repository"
+        if [ -f "$(pwd)/AGENTS-template.md" ]; then
+            cp "$(pwd)/AGENTS-template.md" ~/.claude/AGENTS-template.md
+            echo "✅ AGENTS-template.md copied from local repository"
         else
-            if curl -fsSL "${GIST_URL}/AGENT-BLUEPRINT.md" -o ~/.claude/AGENT-ROOT-BLUEPRINT.md 2>/dev/null; then
-                echo "✅ AGENT-ROOT-BLUEPRINT.md populated from AGENT-BLUEPRINT.md in gist"
-            else
-                cat > ~/.claude/AGENT-ROOT-BLUEPRINT.md << 'EOF'
-# AGENT.md (Root-Level) Blueprint
+            cat > ~/.claude/AGENTS-template.md << 'EOF'
+# AGENTS.md Template
 
-## Project Overview
-- Name: <PROJECT_NAME>
-- Summary: <ONE_SENTENCE_DESCRIPTION>
+Personal preferences for agentic tools. Repository `AGENTS.md` always takes precedence.
 
-## Build & Commands
-- Install: <CMD>
-- Test: <CMD>
-- Dev: <CMD>
+## Preferences
 
-## Code Style
-- <RULES>
+- Editor: <e.g., VS Code>
+- Tab width / indentation: <e.g., 2 spaces>
+- Line length: <e.g., 100>
+- Preferred package manager: <npm/pnpm/yarn>
+- Testing preference: <e.g., vitest>
 
-## Architecture
-- <NOTES>
+## Behaviors
 
-## Testing
-- <NOTES>
+- Auto-run checks before commit: <true/false>
+- Prefer CLI over GUI tooling: <true/false>
+- Ask before running migrations: <true/false>
 
-## Security
-- <NOTES>
+## Security & Privacy
+
+- Never upload proprietary code to remote analysis tools
+- Redact secrets in logs and debugging output
 EOF
-                echo "✅ AGENT-ROOT-BLUEPRINT.md created from default template"
-            fi
+            echo "✅ AGENTS-template.md created from default template"
         fi
     fi
 
-    echo "Downloading AGENT-SUBSYSTEM-BLUEPRINT.md (optional)..."
-    if curl -fsSL "${GIST_URL}/AGENT-SUBSYSTEM-BLUEPRINT.md" -o ~/.claude/AGENT-SUBSYSTEM-BLUEPRINT.md 2>/dev/null; then
-        echo "✅ AGENT-SUBSYSTEM-BLUEPRINT.md downloaded from gist"
+    echo "Updating user-global ~/.config/agent/AGENTS.md from repo (if available)..."
+    if curl -fsSL "${REPO_URL}/${USER_AGENT_FILENAME}" -o /tmp/AGENT.USER.GLOBAL 2>/dev/null; then
+        if [ -f "$HOME/.config/agent/AGENTS.md" ]; then
+            cp "$HOME/.config/agent/AGENTS.md" "$HOME/.config/agent/AGENTS.md.bak-$(date +%Y%m%d-%H%M%S)"
+        fi
+        mv /tmp/AGENT.USER.GLOBAL "$HOME/.config/agent/AGENTS.md"
+        echo "✅ Installed user-global AGENTS.md from repo"
     else
-        if [ -f "$(pwd)/AGENT-SUBSYSTEM-BLUEPRINT.md" ]; then
-            cp "$(pwd)/AGENT-SUBSYSTEM-BLUEPRINT.md" ~/.claude/AGENT-SUBSYSTEM-BLUEPRINT.md
-            echo "✅ AGENT-SUBSYSTEM-BLUEPRINT.md copied from local repository"
+        if [ -f "$(pwd)/AGENTS.md" ]; then
+            cp "$(pwd)/AGENTS.md" "$HOME/.config/agent/AGENTS.md"
+            echo "✅ Installed user-global AGENTS.md from local project file"
         else
-            cat > ~/.claude/AGENT-SUBSYSTEM-BLUEPRINT.md << 'EOF'
-# AGENT.md (Subsystem) Blueprint
+            cat > "$HOME/.config/agent/AGENTS.md" << 'EOF'
+# AGENTS.md (User-Global)
 
-## Subsystem Overview
-- Name: <SUBSYSTEM_NAME>
-- Purpose: <BRIEF>
-
-## Commands
-- Dev: <CMD>
-- Test: <CMD>
-- Build: <CMD>
+Personal preferences for agentic tools. Repository `AGENTS.md` always takes precedence.
 EOF
-            echo "✅ AGENT-SUBSYSTEM-BLUEPRINT.md created from default template"
+            echo "✅ Created minimal user-global AGENTS.md"
         fi
     fi
-
-    echo "Updating user-global ~/.config/AGENT.MD from gist (if available)..."
-    if curl -fsSL "${GIST_URL}/${GIST_USER_AGENT_FILENAME}" -o /tmp/AGENT.USER.GLOBAL 2>/dev/null; then
-        if [ -f "$HOME/.config/AGENT.MD" ]; then
-            cp "$HOME/.config/AGENT.MD" "$HOME/.config/AGENT.MD.bak-$(date +%Y%m%d-%H%M%S)"
-        fi
-        mv /tmp/AGENT.USER.GLOBAL "$HOME/.config/AGENT.MD"
-        echo "✅ Installed user-global AGENT.MD from gist file: ${GIST_USER_AGENT_FILENAME}"
-    else
-        if [ -f "$(pwd)/AGENT-GLOBAL-BLUEPRINT.md" ]; then
-            cp "$(pwd)/AGENT-GLOBAL-BLUEPRINT.md" "$HOME/.config/AGENT.MD"
-            echo "✅ Installed user-global AGENT.MD from local blueprint"
-        else
-            cat > "$HOME/.config/AGENT.MD" << 'EOF'
-# AGENT.md (User-Global)
-
-Personal preferences for agentic tools. Repository `AGENT.md` always takes precedence.
-EOF
-            echo "✅ Created minimal user-global AGENT.MD"
-        fi
-    fi
-
-    if [ ! -e "$HOME/.config/AGENT.md" ]; then
-        ln -sf "$HOME/.config/AGENT.MD" "$HOME/.config/AGENT.md"
-    fi
+    
+    # Ensure Claude reads the canonical config via symlink: ~/.claude/CLAUDE.md -> ~/.config/agent/AGENTS.md
+    ln -sf "$HOME/.config/agent/AGENTS.md" "$HOME/.claude/CLAUDE.md"
     
     echo "Downloading settings.json..."
-    curl -fsSL "${GIST_URL}/settings.json" -o ~/.claude/settings.json
+    curl -fsSL "${REPO_URL}/settings.json" -o ~/.claude/settings.json
     
     echo "Downloading commands.md..."
-    curl -fsSL "${GIST_URL}/commands.md" -o ~/.claude/commands.md 2>/dev/null || true
+    curl -fsSL "${REPO_URL}/commands.md" -o ~/.claude/commands.md 2>/dev/null || true
     
-    echo "✅ Configuration downloaded from gist"
+    echo "✅ Configuration downloaded from repo"
 }
 
 create_utilities() {
@@ -409,37 +390,37 @@ create_utilities() {
 #!/usr/bin/env bash
 set -e
 
-echo "🔄 Syncing global agent configuration from gist..."
+echo "🔄 Syncing global agent configuration..."
 
-GIST_URL="${GIST_URL}"
-GIST_USER_AGENT_FILENAME="${GIST_USER_AGENT_FILENAME}"
+REPO_URL="${REPO_URL}"
+USER_AGENT_FILENAME="${USER_AGENT_FILENAME}"
 
-mkdir -p "\$HOME/.claude" "\$HOME/.config"
+mkdir -p "\$HOME/.claude" "\$HOME/.config/agent"
 
-echo "Downloading CLAUDE.md..."
-curl -fsSL "\${GIST_URL}/CLAUDE.md" -o "\$HOME/.claude/CLAUDE.md" || echo "Warning: Could not download CLAUDE.md"
+echo "Linking ~/.claude/CLAUDE.md to ~/.config/agent/AGENTS.md..."
+ln -sf "\$HOME/.config/agent/AGENTS.md" "\$HOME/.claude/CLAUDE.md"
 
 echo "Downloading settings.json..."
-curl -fsSL "\${GIST_URL}/settings.json" -o "\$HOME/.claude/settings.json" || echo "Warning: Could not download settings.json"
+curl -fsSL "\${REPO_URL}/settings.json" -o "\$HOME/.claude/settings.json" || echo "Warning: Could not download settings.json"
 
 echo "Downloading commands.md..."
-curl -fsSL "\${GIST_URL}/commands.md" -o "\$HOME/.claude/commands.md" || echo "Warning: Could not download commands.md"
+curl -fsSL "\${REPO_URL}/commands.md" -o "\$HOME/.claude/commands.md" || echo "Warning: Could not download commands.md"
 
-echo "Downloading agent blueprints..."
-curl -fsSL "\${GIST_URL}/AGENT-ROOT-BLUEPRINT.md" -o "\$HOME/.claude/AGENT-ROOT-BLUEPRINT.md" 2>/dev/null || true
-curl -fsSL "\${GIST_URL}/AGENT-SUBSYSTEM-BLUEPRINT.md" -o "\$HOME/.claude/AGENT-SUBSYSTEM-BLUEPRINT.md" 2>/dev/null || true
+echo "Downloading agent template..."
+curl -fsSL "\${REPO_URL}/AGENTS-template.md" -o "\$HOME/.claude/AGENTS-template.md" 2>/dev/null || true
 
-if curl -fsSL "\${GIST_URL}/\${GIST_USER_AGENT_FILENAME}" -o /tmp/AGENT.USER.GLOBAL 2>/dev/null; then
-  if [ -f "\$HOME/.config/AGENT.MD" ]; then
-    cp "\$HOME/.config/AGENT.MD" "\$HOME/.config/AGENT.MD.bak-\$(date +%Y%m%d-%H%M%S)"
+if curl -fsSL "\${REPO_URL}/\${USER_AGENT_FILENAME}" -o /tmp/AGENT.USER.GLOBAL 2>/dev/null; then
+  if [ -f "\$HOME/.config/agent/AGENTS.md" ]; then
+    cp "\$HOME/.config/agent/AGENTS.md" "\$HOME/.config/agent/AGENTS.md.bak-\$(date +%Y%m%d-%H%M%S)"
   fi
-  mv /tmp/AGENT.USER.GLOBAL "\$HOME/.config/AGENT.MD"
-  echo "✅ Updated user-global AGENT.MD from gist"
+  mv /tmp/AGENT.USER.GLOBAL "\$HOME/.config/agent/AGENTS.md"
+  echo "✅ Updated user-global AGENTS.md from repo"
+else
+  echo "Warning: Could not download AGENTS.md from repo"
 fi
 
-if [ ! -e "\$HOME/.config/AGENT.md" ]; then
-  ln -sf "\$HOME/.config/AGENT.MD" "\$HOME/.config/AGENT.md"
-fi
+# Maintain CLAUDE.md symlink after updates
+ln -sf "\$HOME/.config/agent/AGENTS.md" "\$HOME/.claude/CLAUDE.md"
 
 echo "✅ Configuration sync complete!"
 EOF
@@ -451,67 +432,58 @@ set -e
 
 usage() {
   cat <<USAGE
-Usage: agent-init [--subsystem]
+Usage: agent-init
 
-Without flags, ensures a root-level AGENT.md exists at the repository root.
-With --subsystem, creates a scoped AGENT.md in the current subdirectory.
+Creates an AGENTS.md file in the current directory using the template.
 USAGE
 }
 
-MODE="root"
-if [ "$1" = "--subsystem" ]; then
-  MODE="subsystem"
-elif [ -n "$1" ]; then
+if [ -n "$1" ]; then
   usage
   exit 1
 fi
 
-if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-  REPO_ROOT=$(git rev-parse --show-toplevel)
-else
-  REPO_ROOT=$(pwd)
-fi
-
-if [ "$MODE" = "root" ]; then
-  TARGET="$REPO_ROOT/AGENT.md"
-  BLUEPRINT="$HOME/.claude/AGENT-ROOT-BLUEPRINT.md"
-else
-  TARGET="$(pwd)/AGENT.md"
-  BLUEPRINT="$HOME/.claude/AGENT-SUBSYSTEM-BLUEPRINT.md"
-fi
+TARGET="$(pwd)/AGENTS.md"
+TEMPLATE="$HOME/.claude/AGENTS-template.md"
 
 ensure_file() {
   if [ ! -f "$TARGET" ]; then
-    if [ -f "$BLUEPRINT" ]; then
-      cp "$BLUEPRINT" "$TARGET"
+    if [ -f "$TEMPLATE" ]; then
+      cp "$TEMPLATE" "$TARGET"
+      echo "🧭 Created AGENTS.md from template: $TARGET"
     else
       cat > "$TARGET" << 'EOF'
-# AGENT.md
+# AGENTS.md
 
-Please customize this file for your project. See https://agent.md for guidance.
+Personal preferences for agentic tools. Repository `AGENTS.md` always takes precedence.
+
+## Preferences
+
+- Editor: VS Code
+- Tab width / indentation: 2 spaces  
+- Line length: 100
+- Preferred package manager: npm
+- Testing preference: vitest
+
+## Behaviors
+
+- Auto-run checks before commit: true
+- Prefer CLI over GUI tooling: true
+- Ask before running migrations: true
+
+## Security & Privacy
+
+- Never upload proprietary code to remote analysis tools
+- Redact secrets in logs and debugging output
 EOF
+      echo "🧭 Created AGENTS.md with default content: $TARGET"
     fi
-    echo "🧭 Created AGENT.md: $TARGET"
-    CREATED=1
-  fi
-}
-
-prompt_if_placeholder() {
-  if grep -q "<PROJECT_NAME>\|AGENT.md initial blueprint" "$TARGET" 2>/dev/null; then
-    echo "✍️  AGENT.md contains placeholders. Please update it to reflect your project."
-    echo "    File: $TARGET"
-  fi
-}
-
-tip_for_subsystem() {
-  if [ "$MODE" = "root" ] && [ -d "$REPO_ROOT" ] && [ "$(pwd)" != "$REPO_ROOT" ] && [ ! -f "$(pwd)/AGENT.md" ]; then
-    echo "💡 Tip: To create a scoped AGENT.md for this subdirectory, run: agent-init --subsystem"
+  else
+    echo "✅ AGENTS.md already exists: $TARGET"
   fi
 }
 
 ensure_file
-prompt_if_placeholder
-tip_for_subsystem
 EOA
 
     chmod +x ~/.local/bin/sync ~/.local/bin/agent-init
@@ -574,7 +546,7 @@ esac
 main() {
     detect_os
     detect_shell
-    check_gist
+    check_repo
     
     echo ""
     echo "📦 Installing dependencies..."
@@ -595,11 +567,11 @@ main() {
     echo ""
     echo "🌍 Platform: $OS ($ARCH)"
     echo "🐚 Shell configs: ${SHELL_CONFIGS[*]}"
-    echo "🌩️  Configuration synced from gist"
+    echo "🌩️  Configuration synced from repo"
     echo ""
     echo "🛠️  Commands:"
-    echo "   sync           - Claude slash command (/sync) and CLI command to sync config from gist"
-    echo "   agent-init     - Shell script to create/verify AGENT.md (works with any agent)"
+    echo "   sync           - Claude slash command (/sync) and CLI command to sync config from repo"
+    echo "   agent-init     - Shell script to create AGENTS.md from template"
     echo ""
     echo "🔄 Restart terminal or source your shell config to activate changes"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

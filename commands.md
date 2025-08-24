@@ -1,112 +1,28 @@
 # Custom Claude Code Slash Commands
 
-## review
+## agent-init
 
-Perform a comprehensive code review focusing on:
+Create a local AGENTS.md file in the current directory using the standard template for project-specific agent guidance.
 
-1. **Code Quality**
-   - Follow established code style and conventions
-   - Check for proper error handling
-   - Verify test coverage for new functionality
-   - Look for potential security vulnerabilities
+This command copies the AGENT-template.md file to create a project-specific AGENTS.md with placeholder sections for:
 
-2. **Architecture & Design**
-   - Ensure code follows SOLID principles
-   - Check for proper separation of concerns
-   - Verify consistent patterns with existing codebase
+### Project Details
+- Project name, summary, and key technologies
+- Repository layout and directory structure
+- Development environment requirements
 
-3. **Performance & Best Practices**
-   - Look for performance issues or anti-patterns
-   - Check for memory leaks or inefficient algorithms
-   - Verify proper async/await usage
+### Development Workflow  
+- Build commands, testing, and deployment
+- Code style guidelines and conventions
+- Git workflow and review processes
 
-4. **Documentation & Maintainability**
-   - Ensure adequate inline documentation
-   - Check that complex logic is well-explained
-   - Verify README updates if needed
+### Architecture & Design
+- Key components and design patterns
+- External dependencies and integrations
+- Security considerations
 
-Be concise and focus on actionable feedback. Only report significant issues, not minor style preferences.
+Think of AGENTS.md as a "README for agents" - providing clear, structured context that helps AI agents understand your project beyond what a human-focused README provides.
 
-## plan
+**Usage**: `/agent-init`
 
-Think hard about the request and create a detailed implementation plan.
-
-Follow this structure:
-
-### Analysis
-- Understand the requirements thoroughly
-- Identify potential challenges or edge cases
-- Consider impact on existing codebase
-
-### Implementation Strategy
-- Break down into logical, testable steps
-- Identify files that need to be created/modified
-- Plan the order of implementation
-
-### Testing Approach
-- Define what needs to be tested
-- Plan unit tests, integration tests as needed
-- Consider edge cases and error scenarios
-
-### Checklist
-Create a markdown checklist with [ ] for each major task:
-- [ ] Task 1: Description
-- [ ] Task 2: Description
-- [ ] Task 3: Description
-
-Save this plan to `docs/plan-$(date +%Y%m%d).md` for reference.
-
-## agent
-
-High-level agent guidance and quick actions:
-
-1. Read the repository `AGENT.md` (root) and apply its conventions
-2. Respect user-global preferences in `~/.config/AGENT.MD`
-3. If working within a subdirectory and no local `AGENT.md` exists, ask whether to create one using the subsystem blueprint
-4. Avoid modifying repository `AGENT.md` without explicit user request
-
-## sync
-
-Pull the latest configuration from the gist and commit updates to git:
-
-1. **Update global config**
-   - Downloads latest `CLAUDE.md`, `settings.json`, and `commands.md` from gist
-   - Updates user-global `~/.config/AGENT.MD` with global agent instructions
-   - Refreshes agent blueprints for creating root and subsystem `AGENT.md` files
-
-2. **Downstream only**
-   - Only pulls configuration from gist, no upstream changes
-   - Clean sync that updates local files without git commits
-
-3. **Non-invasive**
-   - Does not modify existing project `AGENT.md` files
-   - Only updates global configuration and user-global settings
-
-Use `sync` command to refresh configuration and keep your setup current with the gist.
-
-## debug
-
-Systematically debug the issue described in $ARGUMENTS:
-
-1. **Understand the Problem**
-   - Reproduce the issue if possible
-   - Gather error messages, logs, or symptoms
-   - Identify when the problem started occurring
-
-2. **Investigate**
-   - Check recent changes that might be related
-   - Look for similar issues in codebase
-   - Review relevant configuration files
-
-3. **Diagnostic Steps**
-   - Add logging/debugging statements as needed
-   - Test individual components in isolation
-   - Verify environment setup and dependencies
-
-  4. **Solution & Prevention**
-   - Implement a fix for the root cause
-   - Add tests to prevent regression
-   - Update documentation if needed
-    - Consider adding to AGENT.md if it's a common issue
-
-Be methodical and document your findings for future reference.
+**Result**: Creates `AGENTS.md` in current directory with template placeholders to fill out based on your specific project needs.
